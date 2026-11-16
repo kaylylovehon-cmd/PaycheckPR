@@ -1,0 +1,6 @@
+{
+  "name": "Paycheck RP",
+  "description": "ระบบสแกนสลิปเงินเดือนและสรุปยอดเบิกจ่ายสุทธิภายในองค์กร (Payroll & Receipt Management)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

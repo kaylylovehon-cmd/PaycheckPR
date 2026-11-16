@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        (
+          request.auth.token.email == 'kaylylovehon@gmail.com' ||
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        );
+    }
+
+    function isValidPaycheck(data) {
+      return data.keys().hasAll([
+          'payee', 'paycheck', 'tax', 'netPay', 'date', 'note', 'createdBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'payee', 'paycheck', 'tax', 'netPay', 'date', 'note', 'createdBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.payee is string && data.payee.size() >= 1 && data.payee.size() <= 120 &&
+        data.paycheck is number && data.paycheck >= 0 && data.paycheck <= 1000000000 &&
+        data.tax is number && data.tax >= 0 && data.tax <= 1000000000 &&
+        data.netPay is number && data.netPay >= 0 && data.netPay <= 1000000000 &&
+        data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+        data.note is string && data.note.size() <= 200 &&
+        data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'addedBy', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'addedBy', 'createdAt']) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+        data.addedBy is string && data.addedBy.size() >= 1 && data.addedBy.size() <= 128 &&
+        data.createdAt is timestamp;
+    }
+
+    match /paychecks/{paycheckId} {
+      allow get: if isValidId(paycheckId);
+      allow list: if true;
+      allow create: if isAdmin() &&
+        isValidId(paycheckId) &&
+        isValidPaycheck(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(paycheckId) &&
+        isValidPaycheck(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'payee', 'paycheck', 'tax', 'netPay', 'date', 'note', 'updatedAt'
+        ]) &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(paycheckId);
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isAdmin() && isValidId(adminUid);
+      allow list: if isAdmin() && resource.data.email is string;
+      allow create: if isAdmin() &&
+        isValidId(adminUid) &&
+        isValidAdminUser(incoming()) &&
+        incoming().addedBy == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(adminUid);
+    }
+  }
+}

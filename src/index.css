@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-obsidian-950: #050811;
+  --color-obsidian-900: #0a0f1e;
+  --color-obsidian-850: #0f172a;
+  --color-obsidian-800: #162038;
+  --color-gold-300: #fde68a;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #050811;
+    color: #f1f5f9;
+  }
+
+  input[type="date"] {
+    color-scheme: dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: brightness(0) invert(1) opacity(0.85);
+    cursor: pointer;
+  }
+}
+
+@keyframes scanLaser {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #fbbf24, #38bdf8, #fbbf24, transparent);
+  box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.75);
+  animation: scanLaser 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 20;
+}
+
+.laser-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.22) 0%, rgba(251, 191, 36, 0) 100%);
+  transform: translateY(-100%);
+}
+
+.gold-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(10, 15, 30, 0.96));
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.75);
+}
+
+.gold-card:hover {
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0f1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}

@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "PaycheckRecord": {
+      "title": "PaycheckRecord",
+      "description": "Payroll and receipt disbursement record displayed on the public leaderboard and managed by admins.",
+      "type": "object",
+      "properties": {
+        "payee": {
+          "type": "string",
+          "description": "Name of the payee or employee.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "paycheck": {
+          "type": "number",
+          "description": "Gross paycheck amount before deductions."
+        },
+        "tax": {
+          "type": "number",
+          "description": "Tax or deduction amount."
+        },
+        "netPay": {
+          "type": "number",
+          "description": "Net disbursement amount received."
+        },
+        "date": {
+          "type": "string",
+          "description": "Transaction date in YYYY-MM-DD format.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional note or department label.",
+          "maxLength": 200
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Firebase Auth UID of the admin who created this record.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the record was last updated."
+        }
+      },
+      "required": [
+        "payee",
+        "paycheck",
+        "tax",
+        "netPay",
+        "date",
+        "note",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized admin account entry mapped by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the admin.",
+          "maxLength": 160
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "UID of the admin who added this entry.",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the admin was registered."
+        }
+      },
+      "required": ["email", "addedBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/paychecks/{paycheckId}": {
+      "schema": { "$ref": "#/entities/PaycheckRecord" },
+      "description": "Publicly readable payroll disbursement records managed exclusively by authenticated admins."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Allowlisted admin UIDs for administrative access control."
+    }
+  }
+}

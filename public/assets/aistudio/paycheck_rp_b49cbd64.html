@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="description" content="Paycheck RP — ระบบสแกนสลิปเงินเดือนและสรุปยอดเบิกจ่ายสุทธิภายในองค์กร" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Paycheck RP — Payroll &amp; Receipt Management</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Google Fonts: Prompt & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Load Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              950: '#050811',
+              900: '#0a0f1e',
+              850: '#0f172a',
+              800: '#162038',
+            },
+            gold: {
+              300: '#fde68a',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Laser Scanning Animation */
+    @keyframes scanLaser {
+      0% { top: 0%; opacity: 0; }
+      12% { opacity: 1; }
+      88% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .laser-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #fbbf24, #38bdf8, #fbbf24, transparent);
+      box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.75);
+      animation: scanLaser 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      z-index: 20;
+    }
+    .laser-glow {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.22) 0%, rgba(251, 191, 36, 0) 100%);
+      transform: translateY(-100%);
+    }
+
+    /* Subtle Luxury Gold Shimmer Border */
+    .gold-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(10, 15, 30, 0.96));
+      border: 1px solid rgba(251, 191, 36, 0.18);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.75);
+    }
+    .gold-card:hover {
+      border-color: rgba(251, 191, 36, 0.35);
+    }
+
+    /* Dark Mode Native Calendar Icon Styling */
+    input[type="date"] {
+      color-scheme: dark;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: brightness(0) invert(1) opacity(0.85);
+      cursor: pointer;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0f1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d97706;
+    }
+  </style>
+</head>
+<body class="bg-obsidian-950 text-slate-100 antialiased min-h-screen flex flex-col selection:bg-gold-500/30 selection:text-gold-300">
+
+  <!-- Ambient Luxury Background Glows -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-900/20 blur-[120px]"></div>
+    <div class="absolute top-1/4 -right-32 w-96 h-96 rounded-full bg-amber-600/10 blur-[130px]"></div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-20 right-4 sm:right-6 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-obsidian-900/90 backdrop-blur-xl border-b border-amber-500/20 shadow-lg shadow-black/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-3">
+      
+      <!-- Brand Identity with Custom RP Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-obsidian-950/90 border border-amber-400/35 flex items-center justify-center p-1 shadow-md shadow-amber-500/15 shrink-0 overflow-hidden">
+          <img
+            src="https://i.postimg.cc/YSzhwp5K/RP-VI-Logo-1.png"
+            alt="Paycheck RP Logo"
+            referrerpolicy="no-referrer"
+            class="w-full h-full object-contain"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <div style="display:none;" class="w-full h-full items-center justify-center bg-gradient-to-br from-amber-400 to-yellow-600 text-obsidian-950 font-extrabold text-sm rounded-lg">
+            RP
+          </div>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-xl font-bold tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-200 bg-clip-text text-transparent">
+            Paycheck RP
+          </h1>
+        </div>
+      </div>
+
+      <!-- Navigation Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- View Switcher (Visible Only When Admin is Authenticated) -->
+        <div id="admin-nav-tabs" class="hidden items-center bg-obsidian-950/90 p-1 rounded-xl border border-slate-800">
+          <button id="tab-public-btn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-obsidian-950 shadow-xs">
+            <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">หน้าหลัก (Dashboard)</span>
+            <span class="md:hidden">หน้าหลัก</span>
+          </button>
+          <button id="tab-admin-btn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-300 hover:text-amber-300">
+            <i data-lucide="scan-line" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">ระบบหลังบ้าน AI สแกนสลิป</span>
+            <span class="md:hidden">หลังบ้าน AI</span>
+          </button>
+        </div>
+
+        <!-- Admin Button (Public State) -->
+        <button id="btn-open-login" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-400/40 text-amber-300 text-xs sm:text-sm font-semibold shadow-sm transition cursor-pointer">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Admin</span>
+        </button>
+
+        <!-- Admin Session Badge & Logout (Authenticated State) -->
+        <div id="admin-session-controls" class="hidden items-center gap-2">
+          <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Admin
+          </span>
+          <button id="btn-logout" type="button" title="ออกจากระบบ" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/70 border border-rose-500/30 text-rose-300 text-xs font-semibold transition cursor-pointer">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">ออกจากระบบ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: PUBLIC DASHBOARD (EXECUTIVE LEADERBOARD & PERIOD FILTERS)     -->
+  <!-- ===================================================================== -->
+  <main id="public-dashboard-view" class="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+    <!-- Quick Period Filter Tabs -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="inline-flex flex-wrap items-center gap-1.5 bg-obsidian-900/90 p-1.5 rounded-2xl border border-slate-800/90 shadow-inner">
+        <button type="button" data-period="all" class="period-btn active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-obsidian-950 shadow-md shadow-amber-500/20">
+          ทั้งหมด
+        </button>
+        <button type="button" data-period="today" class="period-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-slate-400 hover:text-white">
+          วันนี้
+        </button>
+        <button type="button" data-period="weekly" class="period-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-slate-400 hover:text-white">
+          รายสัปดาห์
+        </button>
+        <button type="button" data-period="monthly" class="period-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-slate-400 hover:text-white">
+          รายเดือน
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Calendar Date Range Filter Bar (Reference Style) -->
+    <section class="rounded-2xl bg-[#131015]/95 border border-amber-500/20 p-4 sm:p-5 shadow-xl space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 items-end">
+        <!-- From Date -->
+        <div class="md:col-span-4 space-y-1.5">
+          <label for="filter-start-date" class="block text-xs sm:text-sm font-medium text-slate-300">
+            จากวันที่
+          </label>
+          <div class="relative bg-[#1B151A] border border-white/10 focus-within:border-[#D4AF37] rounded-xl px-3.5 py-2.5 transition">
+            <input id="filter-start-date" type="date" class="w-full bg-transparent text-sm sm:text-base font-medium text-white focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- To Date -->
+        <div class="md:col-span-4 space-y-1.5">
+          <label for="filter-end-date" class="block text-xs sm:text-sm font-medium text-slate-300">
+            ถึงวันที่
+          </label>
+          <div class="relative bg-[#1B151A] border border-white/10 focus-within:border-[#D4AF37] rounded-xl px-3.5 py-2.5 transition">
+            <input id="filter-end-date" type="date" class="w-full bg-transparent text-sm sm:text-base font-medium text-white focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="md:col-span-4">
+          <button id="btn-apply-dates" type="button" style="background: linear-gradient(135deg, #F3D999, #C89B3C);" class="w-full py-2.5 sm:py-3 px-5 rounded-xl text-[#1A140B] hover:brightness-105 active:scale-[0.99] text-sm sm:text-base font-bold shadow-lg shadow-amber-500/15 transition cursor-pointer">
+            ดูยอดในช่วงวันที่
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Caption Line -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs sm:text-sm text-slate-400">
+        <p id="date-range-caption">
+          ช่วงที่แสดง: <strong class="font-bold text-white">ทั้งหมด</strong> &middot; รวมวันที่เริ่มต้นและสิ้นสุด ตามเวลาประเทศไทย
+        </p>
+        <button id="btn-clear-dates" type="button" class="hidden inline-flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200 underline cursor-pointer">
+          <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+          รีเซ็ตช่วงวันที่
+        </button>
+      </div>
+    </section>
+
+    <!-- 3 Executive Summary KPI Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      <!-- Total Paycheck -->
+      <div class="gold-card rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs sm:text-sm font-medium text-slate-400">ยอดรวม Paycheck (รายได้รวม)</span>
+          <div class="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-400/25 text-blue-400 flex items-center justify-center">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="kpi-total-paycheck" class="text-2xl sm:text-3xl font-bold font-mono text-white tracking-tight">
+          ฿0.00
+        </div>
+        <p id="kpi-record-count" class="text-xs text-blue-300/80 mt-2 flex items-center gap-1.5">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+          <span>จากทั้งหมด 0 รายการในช่วงเวลานี้</span>
+        </p>
+      </div>
+
+      <!-- Total Tax -->
+      <div class="gold-card rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs sm:text-sm font-medium text-slate-400">ยอดรวมภาษี / รายการหัก (Tax)</span>
+          <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-400/25 text-rose-400 flex items-center justify-center">
+            <i data-lucide="landmark" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="kpi-total-tax" class="text-2xl sm:text-3xl font-bold font-mono text-rose-300 tracking-tight">
+          ฿0.00
+        </div>
+        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+          <i data-lucide="percent" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>หักภาษี ณ ที่จ่ายและรายการหักรวม</span>
+        </p>
+      </div>
+
+      <!-- Total Net Pay -->
+      <div class="gold-card rounded-2xl p-5 sm:p-6 relative overflow-hidden border-amber-400/35 bg-gradient-to-br from-slate-900 via-obsidian-900 to-amber-950/25">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs sm:text-sm font-semibold text-amber-300">ยอดเงินที่ได้รับสุทธิรวม (Total Net Pay)</span>
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center shadow-inner">
+            <i data-lucide="coins" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="kpi-total-net" class="text-2xl sm:text-3xl font-extrabold font-mono bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-300 bg-clip-text text-transparent tracking-tight">
+          ฿0.00
+        </div>
+        <p id="kpi-top-earner" class="text-xs text-emerald-300/90 mt-2 flex items-center gap-1.5 truncate">
+          <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+          <span>อันดับ 1: -</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- Search Bar & Leaderboard Table -->
+    <section class="gold-card rounded-2xl overflow-hidden">
+      <div class="p-4 sm:p-6 border-b border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-obsidian-900/60">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+            <i data-lucide="list-ordered" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">ตารางจัดอันดับผู้เบิกจ่าย</h3>
+            <p class="text-xs text-slate-400">เรียงลำดับจากผู้ที่ได้รับ <span class="text-amber-300 font-medium">เงินที่ได้รับสุทธิ (Net Pay)</span> มากที่สุดไปน้อยที่สุด</p>
+          </div>
+        </div>
+
+        <!-- Real-time Payee Search Input -->
+        <div class="relative w-full sm:w-80">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input id="public-search-input" type="text" autocomplete="off" placeholder="ค้นหารายชื่อผู้เบิกที่ต้องการ..." class="w-full bg-obsidian-950/90 border border-slate-700/90 focus:border-amber-400 rounded-xl pl-10 pr-9 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition" />
+          <button id="btn-clear-search" type="button" title="ล้างคำค้นหา" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 cursor-pointer">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Responsive Leaderboard Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-obsidian-950/90 border-b border-slate-800 text-[11px] font-bold text-amber-300/80 uppercase tracking-wider">
+              <th class="py-4 px-4 sm:px-6 w-20 text-center">อันดับ</th>
+              <th class="py-4 px-4">ชื่อผู้เบิก</th>
+              <th class="py-4 px-4 whitespace-nowrap">วันที่ / เวลา</th>
+              <th class="py-4 px-4 text-right whitespace-nowrap">Paycheck (รายได้รวม)</th>
+              <th class="py-4 px-4 text-right whitespace-nowrap">ภาษี (Tax)</th>
+              <th class="py-4 px-4 sm:px-6 text-right whitespace-nowrap">เงินที่ได้รับสุทธิ (Net Pay)</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody" class="divide-y divide-slate-800/70 text-sm">
+            <!-- Rendered dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="leaderboard-empty" class="py-16 px-4 text-center space-y-2.5">
+        <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-amber-400/80 flex items-center justify-center mx-auto border border-slate-700/80">
+          <i data-lucide="inbox" class="w-6 h-6"></i>
+        </div>
+        <p class="text-sm font-semibold text-slate-200">ยังไม่มีข้อมูลรายการเบิกจ่ายในระบบ</p>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">
+          แอดมินสามารถกดปุ่ม <span class="text-amber-300 font-semibold">Admin</span> ด้านบนขวาเพื่ออัปโหลดและสแกนสลิปเงินเดือนเข้าสู่ระบบได้ทันที
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: ADMIN BACK-OFFICE (AI PAYCHECK SCANNER & DATA MANAGER)        -->
+  <!-- ===================================================================== -->
+  <section id="admin-panel-view" class="hidden relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+    
+    <!-- Back-Office Header Banner -->
+    <div class="gold-card rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 border-amber-500/30">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400/30 flex items-center justify-center text-white shadow-md">
+          <i data-lucide="cpu" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            Paycheck RP &mdash; ระบบหลังบ้าน AI สแกนสลิปและอัปเดตข้อมูล
+            <span class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[11px] font-semibold">Admin Mode</span>
+          </h2>
+          <p class="text-xs text-slate-400">อัปโหลดรูปภาพสลิปเพื่อให้ AI ดึงข้อมูลอัตโนมัติ ตรวจสอบตัวเลข และบันทึกลงตารางหน้าหลักได้ทันที</p>
+        </div>
+      </div>
+
+      <button id="btn-back-to-dashboard" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer">
+        <i data-lucide="arrow-left" class="w-4 h-4 text-amber-400"></i>
+        ดูผลลัพธ์บนหน้าหลัก
+      </button>
+    </div>
+
+    <!-- Scanner & Form Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      
+      <!-- Left: Image Upload & Laser Scan Preview (5 cols) -->
+      <div class="lg:col-span-5 gold-card rounded-2xl p-5 sm:p-6 space-y-5">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="image-plus" class="w-5 h-5 text-amber-400"></i>
+            อัปโหลดสลิป / ใบเบิกจ่าย
+          </h3>
+          <span class="text-[11px] text-slate-400">AI Vision OCR</span>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div id="admin-dropzone" class="relative group rounded-2xl border-2 border-dashed border-slate-700 hover:border-amber-400 bg-obsidian-950/70 hover:bg-slate-900/80 transition-all duration-200 overflow-hidden min-h-[290px] sm:min-h-[330px] flex flex-col items-center justify-center p-4 text-center cursor-pointer">
+          
+          <!-- Placeholder -->
+          <div id="admin-upload-placeholder" class="space-y-3.5 max-w-xs mx-auto pointer-events-none">
+            <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700/80 flex items-center justify-center mx-auto text-amber-400 group-hover:scale-105 transition-transform shadow-lg">
+              <i data-lucide="upload-cloud" class="w-7 h-7"></i>
+            </div>
+            <div class="space-y-1">
+              <p class="text-sm font-semibold text-slate-200">
+                ลากไฟล์รูปภาพมาวางที่นี่ หรือ <span class="text-amber-400 underline">คลิกเลือกไฟล์</span>
+              </p>
+              <p class="text-xs text-slate-500">
+                รองรับ JPG, PNG, WEBP (สลิปเงินเดือน, ใบสำคัญจ่าย, ใบเสร็จ)
+              </p>
+            </div>
+          </div>
+
+          <!-- Image Preview + Laser Effect -->
+          <div id="admin-preview-wrapper" class="hidden relative w-full h-full flex items-center justify-center rounded-xl overflow-hidden bg-black/40">
+            <img id="admin-preview-img" src="" alt="สลิปที่อัปโหลด" class="max-h-[350px] w-auto object-contain rounded-xl shadow-lg" />
+            
+            <!-- Laser Scanning Overlay -->
+            <div id="admin-scanning-overlay" class="hidden absolute inset-0 bg-obsidian-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 rounded-xl">
+              <div class="laser-line">
+                <div class="laser-glow"></div>
+              </div>
+              <div class="bg-obsidian-900/95 text-amber-200 px-4 py-2.5 rounded-xl border border-amber-400/40 shadow-2xl flex items-center gap-3 z-30">
+                <svg class="animate-spin h-4 w-4 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-xs sm:text-sm font-medium">Gemini AI กำลังสแกนข้อมูลสลิป...</span>
+              </div>
+            </div>
+          </div>
+
+          <input id="admin-file-input" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" />
+        </div>
+
+        <!-- Upload & Re-scan Controls -->
+        <div class="flex items-center gap-3">
+          <button id="btn-admin-select-file" type="button" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-semibold border border-slate-700 transition cursor-pointer">
+            <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
+            เลือกรูปภาพจากเครื่อง
+          </button>
+          <button id="btn-admin-rescan" type="button" class="hidden items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/40 text-blue-300 text-xs sm:text-sm font-semibold transition cursor-pointer">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            สแกนใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Extracted Form & Save to Public Dashboard (7 cols) -->
+      <div class="lg:col-span-7 gold-card rounded-2xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="file-check-2" class="w-5 h-5 text-emerald-400"></i>
+              ข้อมูลรายการเบิกจ่าย (ตรวจสอบและแก้ไขก่อนบันทึก)
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">เมื่อกดบันทึก ข้อมูลจะอัปเดตขึ้นตารางจัดอันดับหน้าหลักทันที</p>
+          </div>
+          <span id="ai-scan-badge" class="hidden px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
+            AI Ready
+          </span>
+        </div>
+
+        <!-- Payee Name -->
+        <div class="space-y-1.5">
+          <label for="input-payee" class="block text-xs font-semibold text-amber-300 uppercase tracking-wider">
+            ชื่อผู้เบิก / พนักงาน (Payee Name) *
+          </label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input id="input-payee" type="text" autocomplete="off" placeholder="ระบุชื่อ-นามสกุลผู้เบิกจ่าย..." class="w-full bg-obsidian-950 border border-slate-700 focus:border-amber-400 rounded-xl pl-10 pr-4 py-3 text-base font-semibold text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition" />
+          </div>
+        </div>
+
+        <!-- 3 Numeric Fields: Paycheck, Tax, Net Pay -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Paycheck -->
+          <div class="rounded-xl bg-blue-950/30 border border-blue-500/30 p-3.5 space-y-1.5">
+            <label for="input-paycheck" class="block text-xs font-semibold text-blue-300">
+              Paycheck (รายได้รวม)
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold">฿</span>
+              <input id="input-paycheck" type="number" step="0.01" placeholder="0.00" class="w-full bg-obsidian-950 border border-blue-500/30 focus:border-blue-400 rounded-lg pl-7 pr-2.5 py-2 text-base font-bold font-mono text-white focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Tax -->
+          <div class="rounded-xl bg-rose-950/30 border border-rose-500/30 p-3.5 space-y-1.5">
+            <label for="input-tax" class="block text-xs font-semibold text-rose-300">
+              ภาษี / รายการหัก (Tax)
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 font-bold">฿</span>
+              <input id="input-tax" type="number" step="0.01" placeholder="0.00" class="w-full bg-obsidian-950 border border-rose-500/30 focus:border-rose-400 rounded-lg pl-7 pr-2.5 py-2 text-base font-bold font-mono text-white focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Net Pay -->
+          <div class="rounded-xl bg-amber-950/30 border border-amber-400/40 p-3.5 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label for="input-netpay" class="block text-xs font-bold text-amber-300">
+                เงินที่ได้รับสุทธิ (Net Pay)
+              </label>
+              <button id="btn-calc-net" type="button" class="text-[10px] text-amber-400 hover:underline cursor-pointer">คำนวณอัตโนมัติ</button>
+            </div>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-bold">฿</span>
+              <input id="input-netpay" type="number" step="0.01" placeholder="0.00" class="w-full bg-obsidian-950 border border-amber-400/50 focus:border-amber-300 rounded-lg pl-7 pr-2.5 py-2 text-base font-extrabold font-mono text-amber-300 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Date & Notes -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label for="input-date" class="block text-xs font-semibold text-slate-300">
+              วันที่ทำรายการ (Date)
+            </label>
+            <input id="input-date" type="date" class="w-full bg-obsidian-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="input-note" class="block text-xs font-semibold text-slate-300">
+              หมายเหตุ / แผนก (Note)
+            </label>
+            <input id="input-note" type="text" autocomplete="off" placeholder="เช่น เงินเดือนงวดล่าสุด / เบิกค่าโครงการ" class="w-full bg-obsidian-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Submit / Save Action -->
+        <div class="pt-2 flex flex-wrap items-center justify-end gap-3">
+          <button id="btn-reset-form" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold transition cursor-pointer">
+            ล้างฟอร์ม
+          </button>
+          <button id="btn-save-record" type="button" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-obsidian-950 text-sm font-bold shadow-lg shadow-amber-500/25 transition active:scale-[0.99] cursor-pointer">
+            <i data-lucide="save" class="w-4 h-4 stroke-[2.5]"></i>
+            บันทึกข้อมูลขึ้นหน้าหลัก
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Data Management Table (Manage / Delete / Export CSV) -->
+    <div class="gold-card rounded-2xl overflow-hidden">
+      <div class="p-5 sm:p-6 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 bg-obsidian-900/60">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="database" class="w-5 h-5 text-amber-400"></i>
+            จัดการฐานข้อมูลรายการเบิกจ่ายทั้งหมด (<span id="admin-total-records">0</span> รายการ)
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">แอดมินสามารถดึงข้อมูลกลับมาแก้ไข ลบรายการ หรือส่งออกเป็นไฟล์ CSV ได้</p>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button id="btn-export-csv" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-400/40 text-emerald-300 text-xs font-semibold transition cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            ส่งออก CSV
+          </button>
+          <button id="btn-clear-all-data" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/70 border border-rose-500/35 text-rose-300 text-xs font-semibold transition cursor-pointer">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            ล้างข้อมูลทั้งหมด
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-obsidian-950/90 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <th class="py-3.5 px-4 sm:px-6">วันที่</th>
+              <th class="py-3.5 px-4">ชื่อผู้เบิก</th>
+              <th class="py-3.5 px-4 text-right">Paycheck</th>
+              <th class="py-3.5 px-4 text-right">ภาษี</th>
+              <th class="py-3.5 px-4 text-right">เงินที่ได้รับสุทธิ</th>
+              <th class="py-3.5 px-4">หมายเหตุ</th>
+              <th class="py-3.5 px-4 sm:px-6 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="admin-records-tbody" class="divide-y divide-slate-800/70 text-sm">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- ADMIN ACCESS VERIFICATION MODAL (SAFE BROWSING & SHA-256 PROTECTED)   -->
+  <!-- ===================================================================== -->
+  <div id="login-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+    <div class="gold-card rounded-2xl max-w-md w-full p-6 sm:p-7 space-y-6 border-amber-400/40 shadow-2xl relative">
+      
+      <button id="btn-close-login" type="button" aria-label="ปิดหน้าต่าง" class="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-obsidian-950 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/25">
+          <i data-lucide="shield-check" class="w-6 h-6 stroke-[2.2]"></i>
+        </div>
+        <h3 id="admin-modal-title" class="text-xl font-bold text-white">Admin</h3>
+        <p class="text-xs text-slate-400">ยืนยันสิทธิ์ผู้ดูแลระบบ Paycheck RP เพื่อจัดการข้อมูล</p>
+      </div>
+
+      <div id="admin-auth-box" class="space-y-4">
+        <div class="space-y-1.5">
+          <label for="admin-id-field" class="block text-xs font-semibold text-amber-300">Admin ID</label>
+          <div class="relative">
+            <i data-lucide="user-check" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="admin-id-field"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              placeholder="กรอกรหัสผู้ดูแลระบบ (Admin ID)"
+              class="w-full bg-obsidian-950 border border-slate-700 focus:border-amber-400 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="admin-pin-field" class="block text-xs font-semibold text-amber-300">Access PIN</label>
+          <div class="relative">
+            <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="admin-pin-field"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              style="-webkit-text-security: disc;"
+              placeholder="กรอกรหัสผ่าน PIN"
+              class="w-full bg-obsidian-950 border border-slate-700 focus:border-amber-400 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+            />
+            <button id="btn-toggle-pwd" type="button" aria-label="แสดงหรือซ่อนรหัส" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 cursor-pointer">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="login-error-msg" class="hidden rounded-xl bg-rose-950/70 border border-rose-500/40 px-3.5 py-2.5 text-xs text-rose-300 flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i>
+          <span>ข้อมูลยืนยันสิทธิ์ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง</span>
+        </div>
+
+        <button id="btn-verify-admin" type="button" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-obsidian-950 text-sm font-bold shadow-lg shadow-amber-500/20 transition cursor-pointer">
+          เข้าสู่ระบบหลังบ้าน
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+        <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-400/70"></i>
+        <span>Client-Side Web Crypto SHA-256 Verification</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="relative z-10 border-t border-slate-900 bg-obsidian-950/90 py-5 px-4 text-center text-xs text-slate-500">
+    Paycheck RP &copy; 2026 &mdash; Internal Payroll &amp; Receipt Management System
+  </footer>
+
+  <script>
+    // Safely initialize Lucide Icons
+    function refreshIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
+    refreshIcons();
+
+    // =========================================================================
+    // 1. CRYPTOGRAPHIC VERIFICATION (NO PLAINTEXT CREDENTIALS IN SOURCE CODE)
+    // =========================================================================
+    // Verified SHA-256 hex digests for Admin ID (lowercase) and Access PIN
+    const AUTH_DIGEST_U = '677f016049697319b044f1a0a82f4c131730f9216143949c7f81e6705434c0be';
+    const AUTH_DIGEST_P = 'b79340928d3862f2c3362f094a3f039d7a944d416a3f29a2c444f362d6812c46';
+    const SESSION_AUTH_KEY = 'paycheck_rp_admin_session_v4';
+    let inMemoryAdminToken = null;
+
+    // Pure-JS SHA-256 implementation (standard FIPS 180-4)
+    function sha256PureJS(ascii) {
+      function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+      }
+      const mathPow = Math.pow;
+      const maxWord = mathPow(2, 32);
+      let result = '';
+      const words = [];
+      const asciiBitLength = ascii.length * 8;
+      const hash = [];
+      const k = [];
+      let primeCounter = 0;
+
+      const isComposite = {};
+      for (let candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (let i = 0; i < 313; i += candidate) {
+            isComposite[i] = candidate;
+          }
+          hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+          k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+        }
+      }
+
+      ascii += '\x80';
+      while ((ascii.length % 64) - 56) ascii += '\x00';
+      for (let i = 0; i < ascii.length; i++) {
+        const j = ascii.charCodeAt(i);
+        words[i >> 2] |= j << (((3 - i) % 4) * 8);
+      }
+      words[words.length] = (asciiBitLength / maxWord) | 0;
+      words[words.length] = asciiBitLength;
+
+      for (let j = 0; j < words.length; ) {
+        const w = words.slice(j, (j += 16));
+        const oldHash = hash.slice(0);
+        for (let i = 0; i < 64; i++) {
+          const w15 = w[i - 15];
+          const w2 = w[i - 2];
+          const a = hash[0];
+          const e = hash[4];
+          const temp1 =
+            hash[7] +
+            (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+            ((e & hash[5]) ^ (~e & hash[6])) +
+            k[i] +
+            (w[i] =
+              i < 16
+                ? w[i]
+                : (w[i - 16] +
+                    (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                    w[i - 7] +
+                    (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+                  0);
+          const temp2 =
+            (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+            ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+          hash.unshift((temp1 + temp2) | 0);
+          hash[4] = (hash[4] + temp1) | 0;
+          hash.pop();
+        }
+        for (let i = 0; i < 8; i++) {
+          hash[i] = (hash[i] + oldHash[i]) | 0;
+        }
+      }
+
+      for (let i = 0; i < 8; i++) {
+        for (let j = 3; j + 1; j--) {
+          const b = (hash[i] >> (j * 8)) & 255;
+          result += (b < 16 ? '0' : '') + b.toString(16);
+        }
+      }
+      return result;
+    }
+
+    async function computeSha256Hex(message) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      if (window.crypto && window.crypto.subtle && window.isSecureContext) {
+        try {
+          const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        } catch (err) {
+          // Fall back to pure JS SHA-256
+        }
+      }
+      let binaryStr = '';
+      for (let i = 0; i < data.length; i++) {
+        binaryStr += String.fromCharCode(data[i]);
+      }
+      return sha256PureJS(binaryStr);
+    }
+
+    function setAdminSessionToken(token) {
+      inMemoryAdminToken = token;
+      try {
+        sessionStorage.setItem(SESSION_AUTH_KEY, token);
+      } catch (e) {
+        // Ignore storage restrictions in sandboxed iframes
+      }
+    }
+
+    function clearAdminSessionToken() {
+      inMemoryAdminToken = null;
+      try {
+        sessionStorage.removeItem(SESSION_AUTH_KEY);
+      } catch (e) {
+        // Ignore storage restrictions
+      }
+    }
+
+    function isAdminAuthenticated() {
+      if (inMemoryAdminToken === AUTH_DIGEST_U) return true;
+      try {
+        return sessionStorage.getItem(SESSION_AUTH_KEY) === AUTH_DIGEST_U;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // 2. DATA STORAGE & THAILAND DATE HELPERS (STARTS EMPTY - NO SAMPLE DATA)
+    // =========================================================================
+    const RECORDS_STORAGE_KEY = 'paycheck_rp_records_v1';
+    let inMemoryRecords = [];
+
+    function getThailandTodayISO() {
+      try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Bangkok',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date());
+        const y = parts.find((p) => p.type === 'year').value;
+        const m = parts.find((p) => p.type === 'month').value;
+        const d = parts.find((p) => p.type === 'day').value;
+        return `${y}-${m}-${d}`;
+      } catch (e) {
+        const now = new Date();
+        return now.toISOString().split('T')[0];
+      }
+    }
+
+    function formatDateThaiDisplay(isoDate) {
+      if (!isoDate) return '-';
+      const [y, m, d] = isoDate.split('-');
+      if (!y || !m || !d) return isoDate;
+      return `${d}/${m}/${y}`;
+    }
+
+    function loadRecords() {
+      try {
+        const raw = localStorage.getItem(RECORDS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            inMemoryRecords = parsed;
+            return parsed;
+          }
+        }
+      } catch (e) {
+        // Fallback to in-memory storage
+      }
+      return inMemoryRecords;
+    }
+
+    function saveRecords(records) {
+      inMemoryRecords = records;
+      try {
+        localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        // Ignore storage restrictions
+      }
+    }
+
+    function formatCurrency(num) {
+      const val = Number(num) || 0;
+      return (
+        '฿' +
+        val.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })
+      );
+    }
+
+    function escapeHTML(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // =========================================================================
+    // 3. TOAST NOTIFICATIONS
+    // =========================================================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const styles = {
+        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+        error: 'bg-rose-950/95 border-rose-500/50 text-rose-200',
+        info: 'bg-obsidian-900/95 border-amber-400/40 text-amber-200'
+      };
+      const iconNames = {
+        success: 'check-circle-2',
+        error: 'alert-triangle',
+        info: 'info'
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md text-xs sm:text-sm font-medium transition-all duration-300 ${styles[type] || styles.info}`;
+      toast.innerHTML = `
+        <i data-lucide="${iconNames[type] || 'info'}" class="w-4 h-4 shrink-0"></i>
+        <span class="flex-1">${escapeHTML(message)}</span>
+      `;
+      container.appendChild(toast);
+      refreshIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(16px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // =========================================================================
+    // 4. VIEW SWITCHING & ADMIN AUTH MODAL
+    // =========================================================================
+    const publicDashboardView = document.getElementById('public-dashboard-view');
+    const adminPanelView = document.getElementById('admin-panel-view');
+    const adminNavTabs = document.getElementById('admin-nav-tabs');
+    const btnOpenLogin = document.getElementById('btn-open-login');
+    const adminSessionControls = document.getElementById('admin-session-controls');
+    const loginModal = document.getElementById('login-modal');
+    const btnCloseLogin = document.getElementById('btn-close-login');
+    const adminIdInput = document.getElementById('admin-id-field');
+    const adminPinInput = document.getElementById('admin-pin-field');
+    const loginErrorMsg = document.getElementById('login-error-msg');
+    const tabPublicBtn = document.getElementById('tab-public-btn');
+    const tabAdminBtn = document.getElementById('tab-admin-btn');
+
+    function switchView(viewName) {
+      if (viewName === 'admin' && !isAdminAuthenticated()) {
+        openLoginModal();
+        return;
+      }
+
+      if (viewName === 'admin') {
+        publicDashboardView.classList.add('hidden');
+        adminPanelView.classList.remove('hidden');
+        if (tabAdminBtn && tabPublicBtn) {
+          tabAdminBtn.className =
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-obsidian-950 shadow-xs';
+          tabPublicBtn.className =
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-300 hover:text-amber-300';
+        }
+        renderAdminTable();
+      } else {
+        adminPanelView.classList.add('hidden');
+        publicDashboardView.classList.remove('hidden');
+        if (tabAdminBtn && tabPublicBtn) {
+          tabPublicBtn.className =
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-obsidian-950 shadow-xs';
+          tabAdminBtn.className =
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-300 hover:text-amber-300';
+        }
+        renderPublicDashboard();
+      }
+      refreshIcons();
+    }
+
+    function updateAuthUIState() {
+      const authed = isAdminAuthenticated();
+      if (authed) {
+        btnOpenLogin.classList.add('hidden');
+        adminSessionControls.classList.remove('hidden');
+        adminSessionControls.classList.add('flex');
+        adminNavTabs.classList.remove('hidden');
+        adminNavTabs.classList.add('flex');
+      } else {
+        btnOpenLogin.classList.remove('hidden');
+        adminSessionControls.classList.add('hidden');
+        adminSessionControls.classList.remove('flex');
+        adminNavTabs.classList.add('hidden');
+        adminNavTabs.classList.remove('flex');
+        switchView('public');
+      }
+    }
+
+    function openLoginModal() {
+      loginErrorMsg.classList.add('hidden');
+      adminIdInput.value = '';
+      adminPinInput.value = '';
+      loginModal.classList.remove('hidden');
+      setTimeout(() => adminIdInput.focus(), 50);
+    }
+
+    function closeLoginModal() {
+      loginModal.classList.add('hidden');
+      loginErrorMsg.classList.add('hidden');
+    }
+
+    // Bind Admin Button & Modal Controls
+    btnOpenLogin.addEventListener('click', openLoginModal);
+    btnCloseLogin.addEventListener('click', closeLoginModal);
+
+    loginModal.addEventListener('click', (e) => {
+      if (e.target === loginModal) closeLoginModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !loginModal.classList.contains('hidden')) {
+        closeLoginModal();
+      }
+    });
+
+    // Toggle PIN visibility
+    let isPinVisible = false;
+    document.getElementById('btn-toggle-pwd').addEventListener('click', () => {
+      isPinVisible = !isPinVisible;
+      adminPinInput.style.webkitTextSecurity = isPinVisible ? 'none' : 'disc';
+      adminPinInput.type = isPinVisible ? 'text' : 'password';
+    });
+
+    // Verify Admin Credentials via SHA-256
+    async function verifyAdminCredentials() {
+      const inputUser = adminIdInput.value.trim().toLowerCase();
+      const inputPass = adminPinInput.value.trim();
+
+      if (!inputUser || !inputPass) {
+        loginErrorMsg.classList.remove('hidden');
+        return;
+      }
+
+      const [userHash, passHash] = await Promise.all([
+        computeSha256Hex(inputUser),
+        computeSha256Hex(inputPass)
+      ]);
+
+      if (userHash === AUTH_DIGEST_U && passHash === AUTH_DIGEST_P) {
+        setAdminSessionToken(AUTH_DIGEST_U);
+        closeLoginModal();
+        adminIdInput.value = '';
+        adminPinInput.value = '';
+        updateAuthUIState();
+        switchView('admin');
+        showToast('ยืนยันสิทธิ์ Admin สำเร็จ ยินดีต้อนรับเข้าสู่ระบบหลังบ้าน', 'success');
+      } else {
+        loginErrorMsg.classList.remove('hidden');
+        adminPinInput.value = '';
+        adminPinInput.focus();
+      }
+    }
+
+    document.getElementById('btn-verify-admin').addEventListener('click', verifyAdminCredentials);
+    adminIdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') adminPinInput.focus();
+    });
+    adminPinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') verifyAdminCredentials();
+    });
+
+    // Logout
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      clearAdminSessionToken();
+      updateAuthUIState();
+      showToast('ออกจากระบบ Admin เรียบร้อยแล้ว', 'info');
+    });
+
+    if (tabPublicBtn) {
+      tabPublicBtn.addEventListener('click', () => switchView('public'));
+    }
+    if (tabAdminBtn) {
+      tabAdminBtn.addEventListener('click', () => switchView('admin'));
+    }
+    document.getElementById('btn-back-to-dashboard').addEventListener('click', () => switchView('public'));
+
+    // =========================================================================
+    // 5. PUBLIC DASHBOARD FILTERING, SEARCH & LEADERBOARD RENDERING
+    // =========================================================================
+    let activePeriod = 'all';
+    let customStartDate = '';
+    let customEndDate = '';
+
+    const filterStartInput = document.getElementById('filter-start-date');
+    const filterEndInput = document.getElementById('filter-end-date');
+    const dateRangeCaption = document.getElementById('date-range-caption');
+    const btnClearDates = document.getElementById('btn-clear-dates');
+    const publicSearchInput = document.getElementById('public-search-input');
+    const btnClearSearch = document.getElementById('btn-clear-search');
+
+    // Initialize default calendar dates to today (Thailand Time)
+    const todayTH = getThailandTodayISO();
+    filterStartInput.value = todayTH;
+    filterEndInput.value = todayTH;
+
+    function updatePeriodButtonsUI(selectedPeriod) {
+      document.querySelectorAll('.period-btn').forEach((btn) => {
+        const isMatch = btn.dataset.period === selectedPeriod;
+        if (isMatch) {
+          btn.className =
+            'period-btn active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-obsidian-950 shadow-md shadow-amber-500/20';
+        } else {
+          btn.className =
+            'period-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-slate-400 hover:text-white';
+        }
+      });
+    }
+
+    document.querySelectorAll('.period-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activePeriod = btn.dataset.period;
+        customStartDate = '';
+        customEndDate = '';
+        btnClearDates.classList.add('hidden');
+        updatePeriodButtonsUI(activePeriod);
+
+        const labelMap = {
+          all: 'ทั้งหมด',
+          today: 'วันนี้',
+          weekly: 'รายสัปดาห์ (7 วันล่าสุด)',
+          monthly: 'รายเดือน (เดือนปัจจุบัน)'
+        };
+        dateRangeCaption.innerHTML = `ช่วงที่แสดง: <strong class="font-bold text-white">${labelMap[activePeriod] || 'ทั้งหมด'}</strong> &middot; รวมวันที่เริ่มต้นและสิ้นสุด ตามเวลาประเทศไทย`;
+        renderPublicDashboard();
+      });
+    });
+
+    document.getElementById('btn-apply-dates').addEventListener('click', () => {
+      const startVal = filterStartInput.value;
+      const endVal = filterEndInput.value;
+
+      if (!startVal && !endVal) {
+        showToast('กรุณาเลือกวันที่เริ่มต้นหรือวันที่สิ้นสุด', 'error');
+        return;
+      }
+
+      if (startVal && endVal && startVal > endVal) {
+        showToast('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
+        return;
+      }
+
+      activePeriod = 'custom';
+      customStartDate = startVal || endVal;
+      customEndDate = endVal || startVal;
+      updatePeriodButtonsUI('');
+      btnClearDates.classList.remove('hidden');
+
+      const rangeText =
+        customStartDate === customEndDate
+          ? formatDateThaiDisplay(customStartDate)
+          : `${formatDateThaiDisplay(customStartDate)} ถึง ${formatDateThaiDisplay(customEndDate)}`;
+      dateRangeCaption.innerHTML = `ช่วงที่แสดง: <strong class="font-bold text-white">${rangeText}</strong> &middot; รวมวันที่เริ่มต้นและสิ้นสุด ตามเวลาประเทศไทย`;
+      renderPublicDashboard();
+    });
+
+    btnClearDates.addEventListener('click', () => {
+      activePeriod = 'all';
+      customStartDate = '';
+      customEndDate = '';
+      filterStartInput.value = getThailandTodayISO();
+      filterEndInput.value = getThailandTodayISO();
+      btnClearDates.classList.add('hidden');
+      updatePeriodButtonsUI('all');
+      dateRangeCaption.innerHTML = `ช่วงที่แสดง: <strong class="font-bold text-white">ทั้งหมด</strong> &middot; รวมวันที่เริ่มต้นและสิ้นสุด ตามเวลาประเทศไทย`;
+      renderPublicDashboard();
+    });
+
+    publicSearchInput.addEventListener('input', () => {
+      btnClearSearch.classList.toggle('hidden', !publicSearchInput.value.trim());
+      renderPublicDashboard();
+    });
+
+    btnClearSearch.addEventListener('click', () => {
+      publicSearchInput.value = '';
+      btnClearSearch.classList.add('hidden');
+      renderPublicDashboard();
+    });
+
+    function getFilteredRecords() {
+      const all = loadRecords();
+      const todayStr = getThailandTodayISO();
+      const searchQuery = publicSearchInput.value.trim().toLowerCase();
+
+      return all
+        .filter((item) => {
+          const itemDate = item.date || todayStr;
+
+          // Date filter
+          if (activePeriod === 'today') {
+            if (itemDate !== todayStr) return false;
+          } else if (activePeriod === 'weekly') {
+            const now = new Date(todayStr + 'T00:00:00');
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(now.getDate() - 6);
+            const minDate = sevenDaysAgo.toISOString().split('T')[0];
+            if (itemDate < minDate || itemDate > todayStr) return false;
+          } else if (activePeriod === 'monthly') {
+            const currentMonthPrefix = todayStr.slice(0, 7);
+            if (!itemDate.startsWith(currentMonthPrefix)) return false;
+          } else if (activePeriod === 'custom') {
+            if (customStartDate && itemDate < customStartDate) return false;
+            if (customEndDate && itemDate > customEndDate) return false;
+          }
+
+          // Payee name search filter
+          if (searchQuery) {
+            const nameMatch = (item.payee || '').toLowerCase().includes(searchQuery);
+            const noteMatch = (item.note || '').toLowerCase().includes(searchQuery);
+            if (!nameMatch && !noteMatch) return false;
+          }
+
+          return true;
+        })
+        .sort((a, b) => (Number(b.netPay) || 0) - (Number(a.netPay) || 0));
+    }
+
+    function renderPublicDashboard() {
+      const records = getFilteredRecords();
+
+      let totalPaycheck = 0;
+      let totalTax = 0;
+      let totalNet = 0;
+
+      records.forEach((r) => {
+        totalPaycheck += Number(r.paycheck) || 0;
+        totalTax += Number(r.tax) || 0;
+        totalNet += Number(r.netPay) || 0;
+      });
+
+      document.getElementById('kpi-total-paycheck').textContent = formatCurrency(totalPaycheck);
+      document.getElementById('kpi-total-tax').textContent = formatCurrency(totalTax);
+      document.getElementById('kpi-total-net').textContent = formatCurrency(totalNet);
+      document.getElementById('kpi-record-count').innerHTML = `
+        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+        <span>จากทั้งหมด ${records.length.toLocaleString('th-TH')} รายการในช่วงเวลานี้</span>
+      `;
+
+      const topEarnerEl = document.getElementById('kpi-top-earner');
+      if (records.length > 0) {
+        topEarnerEl.innerHTML = `
+          <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+          <span>อันดับ 1: <strong>${escapeHTML(records[0].payee)}</strong> (${formatCurrency(records[0].netPay)})</span>
+        `;
+      } else {
+        topEarnerEl.innerHTML = `
+          <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+          <span>อันดับ 1: -</span>
+        `;
+      }
+
+      const tbody = document.getElementById('leaderboard-tbody');
+      const emptyState = document.getElementById('leaderboard-empty');
+
+      if (records.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        refreshIcons();
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = records
+        .map((rec, idx) => {
+          const rank = idx + 1;
+          let rankBadge = `<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 text-slate-300 font-mono text-xs font-bold">${rank}</span>`;
+          if (rank === 1) {
+            rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-amber-300 to-amber-600 text-obsidian-950 font-mono text-xs font-extrabold shadow-md shadow-amber-500/30">1</span>`;
+          } else if (rank === 2) {
+            rankBadge = `<span class="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-br from-slate-200 to-slate-400 text-obsidian-950 font-mono text-xs font-extrabold">2</span>`;
+          } else if (rank === 3) {
+            rankBadge = `<span class="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-br from-amber-600 to-orange-800 text-white font-mono text-xs font-extrabold">3</span>`;
+          }
+
+          return `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-4 px-4 sm:px-6 text-center">${rankBadge}</td>
+              <td class="py-4 px-4">
+                <div class="font-semibold text-white">${escapeHTML(rec.payee)}</div>
+                ${rec.note ? `<div class="text-xs text-slate-400 mt-0.5">${escapeHTML(rec.note)}</div>` : ''}
+              </td>
+              <td class="py-4 px-4 text-xs text-slate-300 whitespace-nowrap font-mono">
+                ${escapeHTML(formatDateThaiDisplay(rec.date))}
+              </td>
+              <td class="py-4 px-4 text-right font-mono text-blue-300 whitespace-nowrap">
+                ${formatCurrency(rec.paycheck)}
+              </td>
+              <td class="py-4 px-4 text-right font-mono text-rose-300 whitespace-nowrap">
+                ${formatCurrency(rec.tax)}
+              </td>
+              <td class="py-4 px-4 sm:px-6 text-right font-mono font-bold text-amber-300 whitespace-nowrap">
+                ${formatCurrency(rec.netPay)}
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      refreshIcons();
+    }
+
+    // =========================================================================
+    // 6. ADMIN AI PAYCHECK SCANNER & FORM MANAGEMENT
+    // =========================================================================
+    const dropzone = document.getElementById('admin-dropzone');
+    const fileInput = document.getElementById('admin-file-input');
+    const uploadPlaceholder = document.getElementById('admin-upload-placeholder');
+    const previewWrapper = document.getElementById('admin-preview-wrapper');
+    const previewImg = document.getElementById('admin-preview-img');
+    const scanningOverlay = document.getElementById('admin-scanning-overlay');
+    const btnSelectFile = document.getElementById('btn-admin-select-file');
+    const btnRescan = document.getElementById('btn-admin-rescan');
+    const aiScanBadge = document.getElementById('ai-scan-badge');
+
+    const inputPayee = document.getElementById('input-payee');
+    const inputPaycheck = document.getElementById('input-paycheck');
+    const inputTax = document.getElementById('input-tax');
+    const inputNetPay = document.getElementById('input-netpay');
+    const inputDate = document.getElementById('input-date');
+    const inputNote = document.getElementById('input-note');
+
+    let currentImageBase64 = null;
+    let currentImageMime = 'image/jpeg';
+    let editingRecordId = null;
+
+    inputDate.value = getThailandTodayISO();
+
+    function autoCalculateNetPay() {
+      const gross = parseFloat(inputPaycheck.value) || 0;
+      const tax = parseFloat(inputTax.value) || 0;
+      const net = Math.max(0, gross - tax);
+      inputNetPay.value = net ? net.toFixed(2) : '';
+    }
+
+    inputPaycheck.addEventListener('input', autoCalculateNetPay);
+    inputTax.addEventListener('input', autoCalculateNetPay);
+    document.getElementById('btn-calc-net').addEventListener('click', autoCalculateNetPay);
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    btnSelectFile.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('border-amber-400', 'bg-slate-900/90');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('border-amber-400', 'bg-slate-900/90');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('border-amber-400', 'bg-slate-900/90');
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) handleImageFile(file);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleImageFile(file);
+    });
+
+    btnRescan.addEventListener('click', () => {
+      if (currentImageBase64) {
+        scanImageWithGemini(currentImageBase64, currentImageMime);
+      }
+    });
+
+    function handleImageFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, WEBP)', 'error');
+        return;
+      }
+
+      currentImageMime = file.type;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        previewImg.src = dataUrl;
+        uploadPlaceholder.classList.add('hidden');
+        previewWrapper.classList.remove('hidden');
+        btnRescan.classList.remove('hidden');
+        btnRescan.classList.add('inline-flex');
+
+        currentImageBase64 = dataUrl.split(',')[1];
+        scanImageWithGemini(currentImageBase64, currentImageMime);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function scanImageWithGemini(base64Data, mimeType) {
+      scanningOverlay.classList.remove('hidden');
+      aiScanBadge.classList.add('hidden');
+
+      const apiKey = '';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const promptText = `
+        วิเคราะห์รูปภาพสลิปเงินเดือน / ใบเบิกจ่าย / ใบเสร็จนี้ และดึงข้อมูลต่อไปนี้เป็น JSON เท่านั้น:
+        {
+          "payee": "ชื่อผู้เบิกหรือชื่อพนักงาน",
+          "paycheck": ตัวเลขรายได้รวมก่อนหักภาษี (number),
+          "tax": ตัวเลขภาษีหรือรายการหักรวม (number),
+          "netPay": ตัวเลขเงินที่ได้รับสุทธิ (number),
+          "date": "วันที่ในเอกสารรูปแบบ YYYY-MM-DD (ถ้าไม่พบให้เว้นว่าง)",
+          "note": "รายละเอียดสั้นๆ เช่น เงินเดือน หรือ รายการเบิกจ่าย"
+        }
+      `;
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('AI API unavailable');
+        }
+
+        const result = await response.json();
+        const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const parsed = JSON.parse(rawText);
+
+        if (parsed.payee) inputPayee.value = parsed.payee;
+        if (parsed.paycheck !== undefined) inputPaycheck.value = Number(parsed.paycheck).toFixed(2);
+        if (parsed.tax !== undefined) inputTax.value = Number(parsed.tax).toFixed(2);
+        if (parsed.netPay !== undefined) {
+          inputNetPay.value = Number(parsed.netPay).toFixed(2);
+        } else {
+          autoCalculateNetPay();
+        }
+        if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
+          inputDate.value = parsed.date;
+        }
+        if (parsed.note) inputNote.value = parsed.note;
+
+        aiScanBadge.textContent = 'AI สแกนสำเร็จ';
+        aiScanBadge.classList.remove('hidden');
+        showToast('AI สแกนข้อมูลจากสลิปเรียบร้อยแล้ว กรุณาตรวจสอบก่อนบันทึก', 'success');
+      } catch (err) {
+        aiScanBadge.textContent = 'พร้อมกรอกข้อมูล';
+        aiScanBadge.classList.remove('hidden');
+        showToast('อัปโหลดรูปภาพแล้ว สามารถตรวจสอบและกรอกตัวเลขในฟอร์มได้ทันที', 'info');
+      } finally {
+        scanningOverlay.classList.add('hidden');
+      }
+    }
+
+    function resetAdminForm() {
+      editingRecordId = null;
+      inputPayee.value = '';
+      inputPaycheck.value = '';
+      inputTax.value = '';
+      inputNetPay.value = '';
+      inputDate.value = getThailandTodayISO();
+      inputNote.value = '';
+      fileInput.value = '';
+      currentImageBase64 = null;
+      previewImg.src = '';
+      previewWrapper.classList.add('hidden');
+      uploadPlaceholder.classList.remove('hidden');
+      btnRescan.classList.add('hidden');
+      btnRescan.classList.remove('inline-flex');
+      aiScanBadge.classList.add('hidden');
+    }
+
+    document.getElementById('btn-reset-form').addEventListener('click', resetAdminForm);
+
+    document.getElementById('btn-save-record').addEventListener('click', () => {
+      const payee = inputPayee.value.trim();
+      const paycheck = parseFloat(inputPaycheck.value) || 0;
+      const tax = parseFloat(inputTax.value) || 0;
+      const netPay =
+        inputNetPay.value !== '' ? parseFloat(inputNetPay.value) || 0 : Math.max(0, paycheck - tax);
+      const date = inputDate.value || getThailandTodayISO();
+      const note = inputNote.value.trim();
+
+      if (!payee) {
+        showToast('กรุณาระบุชื่อผู้เบิก / พนักงานก่อนบันทึก', 'error');
+        inputPayee.focus();
+        return;
+      }
+
+      const records = loadRecords();
+
+      if (editingRecordId) {
+        const idx = records.findIndex((r) => r.id === editingRecordId);
+        if (idx !== -1) {
+          records[idx] = { ...records[idx], payee, paycheck, tax, netPay, date, note };
+        }
+        showToast(`อัปเดตข้อมูลของ "${payee}" เรียบร้อยแล้ว`, 'success');
+      } else {
+        records.unshift({
+          id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          payee,
+          paycheck,
+          tax,
+          netPay,
+          date,
+          note
+        });
+        showToast(`บันทึกข้อมูลของ "${payee}" ขึ้นหน้าหลักแล้ว`, 'success');
+      }
+
+      saveRecords(records);
+      resetAdminForm();
+      renderAdminTable();
+      renderPublicDashboard();
+    });
+
+    function renderAdminTable() {
+      const records = loadRecords();
+      document.getElementById('admin-total-records').textContent = records.length.toLocaleString('th-TH');
+      const tbody = document.getElementById('admin-records-tbody');
+
+      if (records.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-10 text-center text-xs text-slate-400">
+              ยังไม่มีรายการในฐานข้อมูล อัปโหลดสลิปด้านบนเพื่อเพิ่มรายการแรก
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = records
+        .map(
+          (rec) => `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-slate-300 whitespace-nowrap">
+              ${escapeHTML(formatDateThaiDisplay(rec.date))}
+            </td>
+            <td class="py-3.5 px-4 font-semibold text-white">
+              ${escapeHTML(rec.payee)}
+            </td>
+            <td class="py-3.5 px-4 text-right font-mono text-blue-300 whitespace-nowrap">
+              ${formatCurrency(rec.paycheck)}
+            </td>
+            <td class="py-3.5 px-4 text-right font-mono text-rose-300 whitespace-nowrap">
+              ${formatCurrency(rec.tax)}
+            </td>
+            <td class="py-3.5 px-4 text-right font-mono font-bold text-amber-300 whitespace-nowrap">
+              ${formatCurrency(rec.netPay)}
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-400">
+              ${escapeHTML(rec.note || '-')}
+            </td>
+            <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button" data-edit-id="${escapeHTML(rec.id)}" class="btn-edit-rec p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-300 transition cursor-pointer" title="แก้ไข">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" data-del-id="${escapeHTML(rec.id)}" class="btn-del-rec p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 transition cursor-pointer" title="ลบ">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `
+        )
+        .join('');
+
+      tbody.querySelectorAll('.btn-edit-rec').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.editId;
+          const target = loadRecords().find((r) => r.id === id);
+          if (!target) return;
+          editingRecordId = target.id;
+          inputPayee.value = target.payee;
+          inputPaycheck.value = target.paycheck;
+          inputTax.value = target.tax;
+          inputNetPay.value = target.netPay;
+          inputDate.value = target.date;
+          inputNote.value = target.note || '';
+          inputPayee.focus();
+          showToast(`กำลังแก้ไขรายการของ "${target.payee}"`, 'info');
+        });
+      });
+
+      tbody.querySelectorAll('.btn-del-rec').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.delId;
+          const updated = loadRecords().filter((r) => r.id !== id);
+          saveRecords(updated);
+          renderAdminTable();
+          renderPublicDashboard();
+          showToast('ลบรายการเรียบร้อยแล้ว', 'info');
+        });
+      });
+
+      refreshIcons();
+    }
+
+    // Export CSV
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+      const records = loadRecords();
+      if (records.length === 0) {
+        showToast('ไม่มีข้อมูลสำหรับส่งออก CSV', 'error');
+        return;
+      }
+
+      const headers = ['วันที่', 'ชื่อผู้เบิก', 'Paycheck', 'ภาษี', 'เงินที่ได้รับสุทธิ', 'หมายเหตุ'];
+      const rows = records.map((r) => [
+        r.date,
+        `"${(r.payee || '').replace(/"/g, '""')}"`,
+        Number(r.paycheck || 0).toFixed(2),
+        Number(r.tax || 0).toFixed(2),
+        Number(r.netPay || 0).toFixed(2),
+        `"${(r.note || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Paycheck_RP_${getThailandTodayISO()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('ส่งออกไฟล์ CSV สำเร็จ', 'success');
+    });
+
+    // Clear all records (2-step inline confirmation without confirm())
+    let clearConfirmArmed = false;
+    let clearConfirmTimer = null;
+    const btnClearAll = document.getElementById('btn-clear-all-data');
+
+    btnClearAll.addEventListener('click', () => {
+      if (!clearConfirmArmed) {
+        clearConfirmArmed = true;
+        btnClearAll.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4"></i> กดอีกครั้งเพื่อยืนยันการลบทั้งหมด`;
+        refreshIcons();
+        clearConfirmTimer = setTimeout(() => {
+          clearConfirmArmed = false;
+          btnClearAll.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i> ล้างข้อมูลทั้งหมด`;
+          refreshIcons();
+        }, 4000);
+        return;
+      }
+
+      clearTimeout(clearConfirmTimer);
+      clearConfirmArmed = false;
+      btnClearAll.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i> ล้างข้อมูลทั้งหมด`;
+      saveRecords([]);
+      renderAdminTable();
+      renderPublicDashboard();
+      showToast('ล้างข้อมูลทั้งหมดในระบบเรียบร้อยแล้ว', 'info');
+      refreshIcons();
+    });
+
+    // =========================================================================
+    // 7. INITIALIZE APPLICATION ON LOAD
+    // =========================================================================
+    updateAuthUIState();
+    renderPublicDashboard();
+  </script>
+</body>
+</html>
